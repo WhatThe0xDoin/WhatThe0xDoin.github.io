@@ -1,0 +1,4 @@
+[submodule "public"]
+	path = public
+	url = https://github.com/WhatThe0xDoin/WhatThe0xDoin.github.io.git
+	branch = main
