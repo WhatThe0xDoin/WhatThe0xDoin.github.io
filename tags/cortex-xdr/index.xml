@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>Cortex XDR on WhatThe0xDoin Security Blog</title>
+        <link>https://WhatThe0xDoin.github.io/tags/cortex-xdr/</link>
+        <description>Recent content in Cortex XDR on WhatThe0xDoin Security Blog</description>
+        <generator>Hugo -- gohugo.io</generator>
+        <language>de-ch</language>
+        <lastBuildDate>Wed, 08 Apr 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://WhatThe0xDoin.github.io/tags/cortex-xdr/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>Disabling the Cortex XDR Agent (CVE-2026-0232)</title>
+        <link>https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/</link>
+        <pubDate>Wed, 08 Apr 2026 00:00:00 +0000</pubDate>
+        
+        <guid>https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/</guid>
+        <description>&lt;img src="https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/cover/final_cover.jpg" alt="Featured image of post Disabling the Cortex XDR Agent (CVE-2026-0232)" /&gt;&lt;p&gt;After procrastinating (and still doing so to this day&amp;hellip;) on starting my security blog, especially my main topic about my Bachelor Thesis (&lt;em&gt;Evading EDRs&lt;/em&gt;), I&amp;rsquo;m excited to finally publish a short post about a vulnerability I discovered in October 2025.&lt;/p&gt;
+&lt;p&gt;Hopefully, this serves as motivation to start working on some posts about some creative and working ways to bypass and evade EDR solutions.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;introduction&#34;&gt;Introduction
+&lt;/h2&gt;&lt;p&gt;While analyzing a Cortex security incident in October 2025 at work, I stumbled across the detection &amp;ldquo;Tampering Attempt&amp;rdquo; that led me to investigate what exactly was being monitored.
+After experimenting with the underlying data, I discovered that it is possible to disable the Cortex XDR Agent by modifying specific environment variables used internally by the agent.&lt;/p&gt;
+&lt;p&gt;In this post, I&amp;rsquo;ll walk through the timeline (including communication with Palo Alto) and the technical details. The vulnerability itself is quite simple and does not require any sophisticated exploit or payload.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;timeline--cve-details&#34;&gt;Timeline &amp;amp; CVE Details
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;23.10.2025:&lt;/strong&gt; Submitted technical details via the official Palo Alto vulnerability disclosure form&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;12.12.2025:&lt;/strong&gt; Vulnerability reproduced and confirmed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;29.12.2025 – 26.01.2026:&lt;/strong&gt; No response (to some further questions from my end) from Palo Alto despite multiple follow-ups&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;27.01.2026:&lt;/strong&gt; Content Update 2120 released (fix included, but not yet communicated)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;28.01.2026 – 02.03.2026:&lt;/strong&gt; Continued lack of communication&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;03.03.2026 (Palo Alto):&lt;/strong&gt; Response received, informing me about Content Update 2120 and additional agent-side hardening (high-level without any details)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;08.04.2026:&lt;/strong&gt; Advisory published by Palo Alto&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Vulnerability Date:&lt;/strong&gt; April 8, 2026&lt;br&gt;
+&lt;strong&gt;Product:&lt;/strong&gt; Cortex XDR&lt;br&gt;
+&lt;strong&gt;Affected Versions:&lt;/strong&gt; Agent ≤ 9.0&lt;br&gt;
+&lt;strong&gt;Vendor:&lt;/strong&gt; Palo Alto Networks&lt;br&gt;
+&lt;strong&gt;Weakness Classification:&lt;/strong&gt; CWE-15 (External Control of System or Configuration Setting), CAPEC-578 (Disable Security Software)&lt;br&gt;
+&lt;strong&gt;Severity:&lt;/strong&gt; Medium&lt;br&gt;
+&lt;strong&gt;CVSS:&lt;/strong&gt; 6.7 (Base)&lt;br&gt;
+&lt;strong&gt;Advisory:&lt;/strong&gt; &lt;a class=&#34;link&#34; href=&#34;https://security.paloaltonetworks.com/CVE-2026-0232&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;https://security.paloaltonetworks.com/CVE-2026-0232&lt;/a&gt;&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;technical-details&#34;&gt;Technical Details
+&lt;/h2&gt;&lt;p&gt;For a long time, Cortex XDR utilises a detection called &lt;strong&gt;&amp;ldquo;Tampering Attempt&amp;rdquo;&lt;/strong&gt;, designed to identify suspicious modifications to the Cortex components.
+&lt;img src=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/tampering-attempt-detection.jpg&#34;
+	width=&#34;1679&#34;
+	height=&#34;165&#34;
+	srcset=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/tampering-attempt-detection_hu_3c744ee9b412c39a.jpg 480w, https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/tampering-attempt-detection_hu_7349f860f63704b3.jpg 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;Tampering Attempt Detection&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;1017&#34;
+		data-flex-basis=&#34;2442px&#34;
+	
+&gt;
+One way to trigger this detection is by performing certain registry operation under:
+&lt;code&gt;HKEY_LOCAL_MACHINE\SYSTEM\Cyvera\&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;This registry path stores a significant portion of the agent&amp;rsquo;s configuration and is a valuable source of insight for security researchers.
+It has also been involved in previous vulnerabilities and will likely continue to be relevant in future research regarding Cortex XDR.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Some examples of stored configuration&lt;/strong&gt;:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Process specific monitoring via API hooks (in this example for Chrome.exe)
+&lt;img src=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/Chrome-API-Monitoring.jpg&#34;
+	width=&#34;1610&#34;
+	height=&#34;1208&#34;
+	srcset=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/Chrome-API-Monitoring_hu_6cca4f1dae1abb1c.jpg 480w, https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/Chrome-API-Monitoring_hu_ba2b30df341db3d9.jpg 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;Process API Monitoring&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;133&#34;
+		data-flex-basis=&#34;319px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Agent exceptions
+&lt;img src=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/agent-exceptions.jpg&#34;
+	width=&#34;2042&#34;
+	height=&#34;1080&#34;
+	srcset=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/agent-exceptions_hu_38e29a5cdb07216b.jpg 480w, https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/agent-exceptions_hu_54231c34b45c8956.jpg 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;Agent Exceptions&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;189&#34;
+		data-flex-basis=&#34;453px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Module-level whitelisting and detection logic (in this example with DLLs excluded for Shellcode modules/detections &amp;amp; Mimikatz byte patterns used for its detections)
+&lt;img src=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/Shellcode-Whitelisted-DLLs.jpg&#34;
+	width=&#34;1172&#34;
+	height=&#34;342&#34;
+	srcset=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/Shellcode-Whitelisted-DLLs_hu_e320e291598ffc81.jpg 480w, https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/Shellcode-Whitelisted-DLLs_hu_12b15ac2e7a6bde8.jpg 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;Shellcode Whitelist&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;342&#34;
+		data-flex-basis=&#34;822px&#34;
+	
+&gt;&lt;br&gt;
+&lt;img src=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/mimikatz-patterns.jpg&#34;
+	width=&#34;1016&#34;
+	height=&#34;200&#34;
+	srcset=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/mimikatz-patterns_hu_dfeaa97a6e6372de.jpg 480w, https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/mimikatz-patterns_hu_d64e3d90ff421fa2.jpg 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;Mimikatz Patterns&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;508&#34;
+		data-flex-basis=&#34;1219px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;interesting-finding-environment-variables&#34;&gt;Interesting Finding: Environment Variables
+&lt;/h3&gt;&lt;p&gt;While exploring &lt;code&gt;HKEY_LOCAL_MACHINE\SYSTEM\Cyvera\&lt;/code&gt;, I noticed two environment variables referenced in paths under &amp;ldquo;..\Cyvera\Policy\Organization\Mitigation\FileProtection\ProtectedEntries&amp;rdquo; &amp;amp; &amp;ldquo;..\Cyvera\PolicyTransactions{GUID}\  Organization\Mitigation\FileProtection&amp;rdquo;:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;%NtTrapsProgramFiles%&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;%NtCyveraCommonAppData%&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;Note&lt;/strong&gt;&lt;br&gt;
+Depending on the agent version or environment, these variables may differ (e.g., &lt;code&gt;%trapsprogramfiles%&lt;/code&gt;, &lt;code&gt;%cyveracommonappdata%&lt;/code&gt;) or are not listed at all.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;These are not standard Windows environment variables (like &lt;code&gt;%ProgramFiles%&lt;/code&gt; or &lt;code&gt;%SystemRoot%&lt;/code&gt;), yet they are used in those keys to resolve paths to legitimate Cortex binaries.&lt;/p&gt;
+&lt;p&gt;This raised an interesting question: &lt;em&gt;What happens if we control these variables?&lt;/em&gt;&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;exploitation&#34;&gt;Exploitation
+&lt;/h3&gt;&lt;p&gt;Direct modification of those registry values would not be feasible as modifying protected registry keys will either fail (due to missing priveleges) or trigger anti-tampering alerts. Instead, I created a &lt;strong&gt;system wide environment variable&lt;/strong&gt; via PowerShell:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-powershell&#34; data-lang=&#34;powershell&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;no&#34;&gt;Environment&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]::&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;SetEnvironmentVariable&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;s1&#34;&gt;&amp;#39;NtTrapsProgramFiles&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;s1&#34;&gt;&amp;#39;C:\Temp&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;c&#34;&gt;# Value does not matter, could also be empty&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;s1&#34;&gt;&amp;#39;Machine&amp;#39;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;After rebooting the system, the Cortex XDR Agent went offline permanently and was therefore not able to trigger anymore detections. Example with a LSASS Dump:
+&lt;img src=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/LSASS-Dump.gif&#34;
+	width=&#34;914&#34;
+	height=&#34;822&#34;
+	srcset=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/LSASS-Dump_hu_b4ba4fdc38a0f7b0.gif 480w, https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/LSASS-Dump_hu_5c55ba9606f2f3eb.gif 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;LSASS Dump against disabled Cortex Agent&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;111&#34;
+		data-flex-basis=&#34;266px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;Note&lt;/strong&gt;&lt;br&gt;
+At the time of writing this blog post, I only had access to an older 8.5 agent; however, all newer versions up to and including 9.0 were also affected by this Vulnerability.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Unforuntately setting only a user level environment variable (which does not require administrative privileges) does not disable the agent.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;fix&#34;&gt;Fix
+&lt;/h2&gt;&lt;p&gt;&lt;img src=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/sus_dog.jpg&#34;
+	width=&#34;667&#34;
+	height=&#34;500&#34;
+	srcset=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/sus_dog_hu_c3e2f0856984611c.jpg 480w, https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/sus_dog_hu_17e6565b3be71208.jpg 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;LSASS Dump against disabled Cortex Agent&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;133&#34;
+		data-flex-basis=&#34;320px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;After applying Content Update 2120 (which should have automatically been applied in late January), any attempts to modify these environment variables will now trigger a new detection:
+&lt;img src=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/alert-after-patch.png&#34;
+	width=&#34;1908&#34;
+	height=&#34;207&#34;
+	srcset=&#34;https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/alert-after-patch_hu_76237899d4590e03.png 480w, https://WhatThe0xDoin.github.io/p/disable-cortex-xdr-agent-cve-2026-0232/images/alert-after-patch_hu_4f57c8c9ef899143.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;Post-patch Detection&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;921&#34;
+		data-flex-basis=&#34;2212px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;Interestingly, the structure of the registry keys and the usage of these environment variables appear unchanged. The fix seems to rely on improved detection rather than a fundamental architectural change.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;further-experimentation&#34;&gt;Further Experimentation
+&lt;/h2&gt;&lt;h3 id=&#34;disabling-without-reboot&#34;&gt;Disabling Without Reboot
+&lt;/h3&gt;&lt;p&gt;The exploit requires a reboot because the agent only re-reads environment variables during startup.
+Attempts to restart the agent manually were unsuccessful:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;cytool&lt;/code&gt; requires a password&lt;/li&gt;
+&lt;li&gt;No alternative method to restart the agent was identified&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;However, the agent &lt;strong&gt;does restart automatically during upgrades&lt;/strong&gt;.
+This introduces a theoretical attack scenario (although rather unlikely):&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Modify/Create the environment variable&lt;/li&gt;
+&lt;li&gt;Wait for an agent update to be deployed&lt;/li&gt;
+&lt;li&gt;The agent restarts automatically&lt;/li&gt;
+&lt;li&gt;The agent comes back up in a disabled state&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;I tested this using a VM snapshot of an old 8.5 agent:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The agent restarted automatically after approximately 10 minutes (with active internet connectivity)&lt;/li&gt;
+&lt;li&gt;After the Agent Upgrade, the agent remained disabled&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;takeaways&#34;&gt;Takeaways
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Vendor communication during coordinated disclosure can be slow or inconsistent&lt;/li&gt;
+&lt;li&gt;The &lt;code&gt;HKEY_LOCAL_MACHINE\SYSTEM\Cyvera\&lt;/code&gt; registry hive remains a valuable target for research. There are likely additional Detection bypasses, Evasion techniques or even Vulnerabilities just waiting to be discovered&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        
+    </channel>
+</rss>
